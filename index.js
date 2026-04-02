@@ -17,20 +17,21 @@ connectDB();
 
 const app = express();
 
-// Environment specific CORS config
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [process.env.FRONTEND_URL] // e.g. https://your-vercel-app.vercel.app
-  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
-
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    
+    // Allow localhost or any Vercel domain dynamically
+    if (
+      origin.includes('localhost') || 
+      origin.includes('127.0.0.1') || 
+      origin.endsWith('.vercel.app') || 
+      origin === process.env.FRONTEND_URL
+    ) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    
+    return callback(new Error('CORS policy violation'), false);
   },
   credentials: true
 }));
