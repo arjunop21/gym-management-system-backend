@@ -10,6 +10,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import staffRoutes from './routes/staffRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/staff', staffRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

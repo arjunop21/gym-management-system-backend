@@ -100,3 +100,18 @@ export const resetPassword = async (req, res) => {
 
   res.status(200).json({ message: 'Password reset successful. Please login with new password.' });
 };
+
+export const changePassword = async (req, res) => {
+  const { email, oldPassword, newPassword } = req.body;
+
+  const admin = await Admin.findOne({ email });
+
+  if (admin && (await admin.matchPassword(oldPassword))) {
+    admin.password = newPassword;
+    await admin.save();
+    res.status(200).json({ message: 'Password successfully changed! Redirecting...' });
+  } else {
+    res.status(401).json({ message: 'Invalid admin email or incorrect old password' });
+  }
+};
+

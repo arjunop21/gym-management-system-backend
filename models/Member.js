@@ -11,7 +11,7 @@ const memberSchema = new mongoose.Schema({
     ref: 'Plan',
     required: true
   },
-  expiryDate: { type: Date, required: true },
+  expiryDate: { type: Date, required: false },
   status: { type: String, enum: ['Active', 'Expired', 'Temporary Discontinue'], default: 'Active' },
   personalTraining: { type: Boolean, default: false },
   personalTrainerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff', default: null },

@@ -1,4 +1,5 @@
 import Member from '../models/Member.js';
+import Plan from '../models/Plan.js';
 
 // @desc    Get all members
 // @route   GET /api/members
@@ -15,13 +16,22 @@ export const getMembers = async (req, res) => {
 // @route   POST /api/members
 export const createMember = async (req, res) => {
   try {
-    const { name, phone, address, photo, membershipPlan, expiryDate, status, personalTraining, personalTrainerId } = req.body;
-    
-    // Calculate expiryDate if not provided
-    // For simplicity, handle it on frontend or do simple calculation here
-    
+    const { name, phone, address, photo, membershipPlan, joinDate, status, personalTraining, personalTrainerId } = req.body;
+
+    // Auto-calculate expiryDate from joinDate + plan.duration months
+    const plan = await Plan.findById(membershipPlan);
+    if (!plan) return res.status(400).json({ message: 'Invalid membership plan' });
+
+    const startDate = joinDate ? new Date(joinDate) : new Date();
+    const expiry = new Date(startDate);
+    expiry.setMonth(expiry.getMonth() + plan.duration);
+
     const member = new Member({
-      name, phone, address, photo, membershipPlan, expiryDate, status, personalTraining, personalTrainerId: personalTrainerId || null
+      name, phone, address, photo, membershipPlan,
+      joinDate: startDate,
+      expiryDate: expiry,
+      status, personalTraining,
+      personalTrainerId: personalTrainerId || null
     });
 
     const createdMember = await member.save();
@@ -41,8 +51,22 @@ export const updateMember = async (req, res) => {
       member.phone = req.body.phone || member.phone;
       member.address = req.body.address || member.address;
       member.photo = req.body.photo || member.photo;
-      member.membershipPlan = req.body.membershipPlan || member.membershipPlan;
-      member.expiryDate = req.body.expiryDate || member.expiryDate;
+
+      // If plan or joinDate changed, recalculate expiryDate
+      const newPlanId = req.body.membershipPlan || member.membershipPlan;
+      const newJoinDate = req.body.joinDate ? new Date(req.body.joinDate) : member.joinDate;
+
+      if (req.body.membershipPlan || req.body.joinDate) {
+        const plan = await Plan.findById(newPlanId);
+        if (plan) {
+          const expiry = new Date(newJoinDate);
+          expiry.setMonth(expiry.getMonth() + plan.duration);
+          member.expiryDate = expiry;
+        }
+      }
+
+      member.membershipPlan = newPlanId;
+      member.joinDate = newJoinDate;
       member.status = req.body.status || member.status;
       if (req.body.personalTraining !== undefined) member.personalTraining = req.body.personalTraining;
       if (req.body.personalTrainerId !== undefined) member.personalTrainerId = req.body.personalTrainerId || null;
