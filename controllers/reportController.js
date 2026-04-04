@@ -3,12 +3,32 @@ import Payment from '../models/Payment.js';
 import Attendance from '../models/Attendance.js';
 
 export const getDashboardStats = async (req, res) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const totalMembers = await Member.countDocuments();
-  const activeMembers = await Member.countDocuments({ status: 'Active' });
-  const expiredMembers = await Member.countDocuments({ status: 'Expired' });
-  
+
+  // Active = status is Active AND (no expiryDate OR expiryDate >= today)
+  const activeMembers = await Member.countDocuments({
+    status: 'Active',
+    $or: [
+      { expiryDate: { $exists: false } },
+      { expiryDate: null },
+      { expiryDate: { $gte: today } },
+    ],
+  });
+
+  // Expired = status is 'Expired' OR (status is 'Active' but expiryDate has passed)
+  // This matches the frontend's dynamicStatus logic exactly
+  const expiredMembers = await Member.countDocuments({
+    $or: [
+      { status: 'Expired' },
+      { status: 'Active', expiryDate: { $lt: today } },
+    ],
+  });
+
   const payments = await Payment.find({ status: 'Paid' });
-  const monthlyRevenue = payments.reduce((acc, curr) => acc + curr.amount, 0); // Simplified. Needs date filtering for real case
+  const monthlyRevenue = payments.reduce((acc, curr) => acc + curr.amount, 0);
 
   res.json({
     totalMembers,
