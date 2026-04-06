@@ -15,3 +15,13 @@ export const markAttendance = async (req, res) => {
   await attendance.save();
   res.status(201).json(attendance);
 };
+
+export const deleteAttendance = async (req, res) => {
+  const attendance = await Attendance.findById(req.params.id);
+  if (attendance) {
+    await attendance.deleteOne();
+    res.json({ message: 'Attendance record removed' });
+  } else {
+    res.status(404).json({ message: 'Attendance record not found' });
+  }
+};

@@ -118,3 +118,19 @@ export const updatePayment = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+// @desc  Delete payment
+// @route DELETE /api/payments/:id
+export const deletePayment = async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.id);
+    if (payment) {
+      await payment.deleteOne();
+      res.json({ message: 'Payment record removed' });
+    } else {
+      res.status(404).json({ message: 'Payment record not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
