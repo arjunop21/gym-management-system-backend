@@ -18,6 +18,12 @@ export const createMember = async (req, res) => {
   try {
     const { name, phone, address, photo, membershipPlan, joinDate, status, personalTraining, personalTrainerId } = req.body;
 
+    // Check if phone already exists
+    const existingMember = await Member.findOne({ phone });
+    if (existingMember) {
+      return res.status(400).json({ message: `Member with phone number ${phone} already exists.` });
+    }
+
     // Auto-calculate expiryDate from joinDate + plan.duration months
     const plan = await Plan.findById(membershipPlan);
     if (!plan) return res.status(400).json({ message: 'Invalid membership plan' });
@@ -47,6 +53,14 @@ export const updateMember = async (req, res) => {
   try {
     const member = await Member.findById(req.params.id);
     if (member) {
+      // Check if phone already exists (and it's not THIS member)
+      if (req.body.phone && req.body.phone !== member.phone) {
+        const existingMember = await Member.findOne({ phone: req.body.phone });
+        if (existingMember) {
+          return res.status(400).json({ message: `Another member with phone number ${req.body.phone} already exists.` });
+        }
+      }
+
       member.name = req.body.name || member.name;
       member.phone = req.body.phone || member.phone;
       member.address = req.body.address || member.address;

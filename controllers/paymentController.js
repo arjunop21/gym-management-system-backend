@@ -32,6 +32,22 @@ export const createPayment = async (req, res) => {
 
     // Calculate expiryDate from renewDate + plan.duration months
     const renewStart = renewDate ? new Date(renewDate) : new Date();
+
+    // Check for duplicate payment (same member, same renewal day)
+    const startOfDay = new Date(renewStart);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(renewStart);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingPayment = await Payment.findOne({
+      memberId,
+      renewDate: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    if (existingPayment) {
+      return res.status(400).json({ message: 'A payment record for this member on this date already exists.' });
+    }
+
     const expiry = expiryDate ? new Date(expiryDate) : (() => {
       const d = new Date(renewStart);
       d.setMonth(d.getMonth() + plan.duration);
@@ -83,6 +99,22 @@ export const updatePayment = async (req, res) => {
 
     // Resolve dates
     const renewStart = renewDate ? new Date(renewDate) : payment.renewDate;
+
+    // Check for duplicate payment (excluding this one)
+    const startOfDay = new Date(renewStart);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(renewStart);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingPayment = await Payment.findOne({
+      memberId: payment.memberId,
+      _id: { $ne: payment._id },
+      renewDate: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    if (existingPayment) {
+      return res.status(400).json({ message: 'Another payment record for this member on this date already exists.' });
+    }
     const expiry = expiryDate
       ? new Date(expiryDate)
       : (() => {

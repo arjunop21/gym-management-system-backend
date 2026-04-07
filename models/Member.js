@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const memberSchema = new mongoose.Schema({
   name: { type: String, required: true, index: true },
-  phone: { type: String, required: true, index: true },
+  phone: { type: String, required: true, unique: true, index: true },
   address: { type: String, required: true },
   photo: { type: String, default: '' },
   joinDate: { type: Date, default: Date.now, index: true },
