@@ -7,39 +7,56 @@ export const getDashboardStats = async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const [totalMembers, activeMembers, expiredMembers, monthlyRevenueResult] = await Promise.all([
-      Member.countDocuments(),
-      Member.countDocuments({
-        status: 'Active',
-        $or: [
-          { expiryDate: { $exists: false } },
-          { expiryDate: null },
-          { expiryDate: { $gte: today } },
-        ],
-      }),
-      Member.countDocuments({
-        $or: [
-          { status: 'Expired' },
-          { status: 'Active', expiryDate: { $lt: today } },
-        ],
-      }),
-      Payment.aggregate([
-        { 
-          $match: { 
-            status: 'Paid',
-            date: { $gte: firstDayOfMonth }
-          } 
-        },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
-      ])
+    const stats = await Member.aggregate([
+      {
+        $facet: {
+          total: [{ $count: "count" }],
+          active: [
+            {
+              $match: {
+                status: 'Active',
+                $or: [
+                  { expiryDate: { $exists: false } },
+                  { expiryDate: null },
+                  { expiryDate: { $gte: today } },
+                ]
+              }
+            },
+            { $count: "count" }
+          ],
+          expired: [
+            {
+              $match: {
+                $or: [
+                  { status: 'Expired' },
+                  { status: 'Active', expiryDate: { $lt: today } }
+                ]
+              }
+            },
+            { $count: "count" }
+          ]
+        }
+      }
     ]);
 
-    const monthlyRevenue = monthlyRevenueResult[0]?.total || 0;
+    const revenueResult = await Payment.aggregate([
+      { 
+        $match: { 
+          status: 'Paid',
+          date: { $gte: firstDayOfMonth }
+        } 
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]);
 
-    res.json({ totalMembers, activeMembers, expiredMembers, monthlyRevenue });
+    res.json({
+      totalMembers: stats[0].total[0]?.count || 0,
+      activeMembers: stats[0].active[0]?.count || 0,
+      expiredMembers: stats[0].expired[0]?.count || 0,
+      monthlyRevenue: revenueResult[0]?.total || 0
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

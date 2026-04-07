@@ -127,7 +127,8 @@ export const getExpiringMembers = async (req, res) => {
     const members = await Member.find({
       expiryDate: { $gte: today, $lte: next7Days },
       status: { $ne: 'Temporary Discontinue' }
-    }).lean();
+    }, '_id name phone photo expiryDate')
+    .lean();
 
     const expiringMembers = members.map(member => {
       const expiry = new Date(member.expiryDate);
