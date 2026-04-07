@@ -9,7 +9,8 @@ export const getPayments = async (req, res) => {
     const payments = await Payment.find()
       .populate('memberId', 'name phone')
       .populate('membershipPlan', 'name price duration')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(payments);
   } catch (error) {
     res.status(500).json({ message: error.message });

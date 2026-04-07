@@ -5,7 +5,9 @@ import Plan from '../models/Plan.js';
 // @route   GET /api/members
 export const getMembers = async (req, res) => {
   try {
-    const members = await Member.find().populate('membershipPlan', 'name price duration');
+    const members = await Member.find()
+      .populate('membershipPlan', 'name price duration')
+      .lean();
     res.json(members);
   } catch (error) {
     res.status(500).json({ message: error.message });
