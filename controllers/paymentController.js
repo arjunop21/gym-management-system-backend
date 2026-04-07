@@ -6,12 +6,27 @@ import Plan from '../models/Plan.js';
 // @route GET /api/payments
 export const getPayments = async (req, res) => {
   try {
-    const payments = await Payment.find()
-      .populate('memberId', 'name phone')
-      .populate('membershipPlan', 'name price duration')
-      .sort({ createdAt: -1 })
-      .lean();
-    res.json(payments);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [payments, total] = await Promise.all([
+      Payment.find()
+        .populate('memberId', 'name phone')
+        .populate('membershipPlan', 'name price duration')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Payment.countDocuments()
+    ]);
+
+    res.json({
+      payments,
+      page,
+      pages: Math.ceil(total / limit),
+      total
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

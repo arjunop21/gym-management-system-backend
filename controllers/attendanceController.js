@@ -1,12 +1,34 @@
 import Attendance from '../models/Attendance.js';
 
 export const getAttendance = async (req, res) => {
-  const attendance = await Attendance.find().populate({
-    path: 'memberId',
-    select: 'name personalTraining personalTrainerId',
-    populate: { path: 'personalTrainerId', select: 'name' }
-  });
-  res.json(attendance);
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [attendance, total] = await Promise.all([
+      Attendance.find()
+        .populate({
+          path: 'memberId',
+          select: 'name personalTraining personalTrainerId',
+          populate: { path: 'personalTrainerId', select: 'name' }
+        })
+        .sort({ date: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Attendance.countDocuments()
+    ]);
+
+    res.json({
+      attendance,
+      page,
+      pages: Math.ceil(total / limit),
+      total
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 export const markAttendance = async (req, res) => {
