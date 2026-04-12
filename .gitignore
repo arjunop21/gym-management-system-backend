@@ -2,6 +2,7 @@
 /config/firebase-service-account.json
 /dist
 /.env
+/config/cloudinary.js
 /coverage
 /.vscode
 .DS_Store

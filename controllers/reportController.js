@@ -161,12 +161,12 @@ export const getDynamicChartData = async (req, res) => {
         { 
           $match: { 
             status: 'Paid', 
-            renewDate: { $gte: periodStart, $lte: periodEnd } 
+            date: { $gte: periodStart, $lte: periodEnd } 
           } 
         },
         {
           $group: {
-            _id: { $dayOfMonth: "$renewDate" },
+            _id: { $dayOfMonth: "$date" },
             revenue: { $sum: "$amount" }
           }
         }
@@ -188,12 +188,12 @@ export const getDynamicChartData = async (req, res) => {
         { 
           $match: { 
             status: 'Paid', 
-            renewDate: { $gte: periodStart, $lte: periodEnd } 
+            date: { $gte: periodStart, $lte: periodEnd } 
           } 
         },
         {
           $group: {
-            _id: { $month: "$renewDate" },
+            _id: { $month: "$date" },
             revenue: { $sum: "$amount" }
           }
         }
@@ -207,21 +207,25 @@ export const getDynamicChartData = async (req, res) => {
       }
     }
 
-    const [activeCount, expiredCount] = await Promise.all([
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [activeCount, expiredCount, totalCount] = await Promise.all([
       Member.countDocuments({
-        status: { $ne: 'Temporary Discontinue' },
-        joinDate: { $lte: periodEnd },
+        status: 'Active',
         $or: [
           { expiryDate: { $exists: false } },
           { expiryDate: null },
-          { expiryDate: { $gte: periodEnd } },
+          { expiryDate: { $gte: todayStart } },
         ],
       }),
       Member.countDocuments({
-        status: { $ne: 'Temporary Discontinue' },
-        joinDate: { $lte: periodEnd },
-        expiryDate: { $lt: periodEnd },
-      })
+        $or: [
+          { status: 'Expired' },
+          { status: 'Active', expiryDate: { $lt: todayStart } }
+        ]
+      }),
+      Member.countDocuments()
     ]);
 
     const memberStatusData = [
@@ -229,7 +233,7 @@ export const getDynamicChartData = async (req, res) => {
       { name: 'Expired', value: expiredCount },
     ];
 
-    res.json({ revenueData, memberStatusData });
+    res.json({ revenueData, memberStatusData, totalMembers: totalCount });
   } catch (err) {
     console.error('getDynamicChartData error:', err);
     res.status(500).json({ error: 'Server error' });

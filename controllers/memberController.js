@@ -142,3 +142,31 @@ export const getExpiringMembers = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Get expired members
+// @route   GET /api/members/expired
+export const getExpiredMembers = async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const members = await Member.find({
+      $or: [
+        { status: 'Expired' },
+        { status: 'Active', expiryDate: { $lt: today } }
+      ]
+    }, '_id name phone joinDate photo expiryDate status')
+    .lean();
+
+    const expiredMembers = members.map(member => {
+      const expiry = new Date(member.expiryDate);
+      const diffTime = new Date() - expiry;
+      const daysExpired = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return { ...member, daysExpired: daysExpired >= 0 ? daysExpired : 0 };
+    });
+
+    res.json(expiredMembers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
